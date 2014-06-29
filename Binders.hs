@@ -30,20 +30,25 @@ data Expr (x :: OC) where
 deriving instance Show (Expr a)
 --deriving instance Eq (Expr a)
 
-{-
-maxBV :: Expr -> Name
-maxBV e = Bound $ case e of
-	Var _   -> 0
-	App f e -> maxBV f `max` maxBV e
-	Lam n e -> n `max` maxBV e
+maxN :: Name Bound_ -> Name Bound_ -> Name Bound_
+maxN (Bound x) (Bound y) = Bound $ max x y
 
-lam :: (Expr -> Expr) -> Expr
+succN :: Name Bound_ -> Name Bound_
+succN (Bound x) = Bound $ x + 1
+
+maxBV :: Expr a -> Name Bound_
+maxBV e = case e of
+	Var _   -> Bound 0
+	App f e -> maxBV f `maxN` maxBV e
+	Lam n e -> n `maxN` maxBV e
+
+lam :: (Expr Closed -> Expr b) -> Expr b
 lam f = Lam n body
 	where body = f (Var n)
-	      n = maxBV body + 1
+	      n = succN $ maxBV body
 
-sub :: Name -> Expr -> Expr -> Expr
-sub n s e = case e of
-	Var
-	Var m | n == m -> e
--}
+sub :: Name Free_ -> Expr Open -> Expr a -> Expr Open
+sub fn@(Free n) s e = case e of
+	Var (Free m) -> if n == m then s else Var (Free m)
+	App f e -> App (sub fn s f) (sub fn s e)
+	_ -> error "ayy"
